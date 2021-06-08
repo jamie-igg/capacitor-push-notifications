@@ -77,31 +77,26 @@ public class PushNotificationsPlugin extends Plugin {
         }
     }
 
+    /*
+     * Thanks to @PierreNansot for this fix
+     * https://github.com/PierreNansot/capacitor-plugins/blob/b689821ffd9da0aea0bd77b4430822cb214842b4/push-notifications/android/src/main/java/com/capacitorjs/plugins/pushnotifications/PushNotificationsPlugin.java
+     */
     @PluginMethod
     public void register(PluginCall call) {
         FirebaseMessaging.getInstance().setAutoInitEnabled(true);
-        FirebaseInstanceId
-            .getInstance()
-            .getInstanceId()
-            .addOnSuccessListener(
-                getActivity(),
-                new OnSuccessListener<InstanceIdResult>() {
-                    @Override
-                    public void onSuccess(InstanceIdResult instanceIdResult) {
-                        sendToken(instanceIdResult.getToken());
+        FirebaseMessaging.getInstance().getToken()
+            .addOnCompleteListener(new OnCompleteListener<String>() {
+                @Override
+                public void onComplete(@NonNull Task<String> task) {
+                    if (!task.isSuccessful()) {
+                        sendError(task.getException().getLocalizedMessage());
+                        return;
                     }
+                    
+                    String token = task.getResult();
+                    sendToken(token);
                 }
-            );
-        FirebaseInstanceId
-            .getInstance()
-            .getInstanceId()
-            .addOnFailureListener(
-                new OnFailureListener() {
-                    public void onFailure(Exception e) {
-                        sendError(e.getLocalizedMessage());
-                    }
-                }
-            );
+            });
         call.resolve();
     }
 
